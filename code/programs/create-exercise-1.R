@@ -4,26 +4,27 @@
 #   Modeled after <https://faculty.polisci.wisc.edu/weimer/PS813_EX1.ado>
 # ----------------------------------------------------
 
-create_exercise_1 <- function(seed = numeric(0)) {
+create_data_exercise_1 <- function(seed = numeric(0)) {
   
   # expect an integer seed of length 1
-  if (is.numeric(seed) == FALSE) {
-    stop("seed must be numeric")
-  }
   if ((length(seed) == 1) == FALSE) {
     stop("seed must be length 1")
+  }
+  if (is.numeric(seed) == FALSE) {
+    stop("seed must be numeric")
   }
   if ((seed %% round(seed) == 0) == FALSE) {
     stop("seed must be a whole number")
   }
-    
-  set.seed(seed)
+   
 
   # make disturbance term for n observations
+  set.seed(seed)
   n <- 20
   dis <- round(sqrt(50) * rnorm(n = n))
   
   # legislator data: term length and disturbance
+  # in the future might make `terms` robust to arbitrary n
   data <- data.frame(
     legislator_id = seq(1, n, 1),
     terms = c(
