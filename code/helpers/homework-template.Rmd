@@ -1,0 +1,69 @@
+---
+title: Homework tips with R Markdown
+author: Michael DeCrescenzo
+# using these vertical pipes lets you do more flexible things like use LaTeX
+date: |
+  | \today
+
+output: 
+  pdf_document:
+    keep_tex: true # sub-options require indentation like this
+
+# here are some options that overrule global LaTeX things:
+geometry: margin = 1.15in # can also set top =, left =, ... separately
+                          # My secret advice is to use margins >= 1.15in 
+                          # until you get caught (they look better)
+fontsize: 12pt
+compact-title: true # for some reason the default PDF title style is horrible.
+                    # this fixes that.
+                    # OR update knitr/rmarkdown to the most recent version
+                    # which I think fixes the ugly title style
+indent: true # for some reason the default paragraph style is also horrible. 
+             # this fixes that.
+
+# You can supply LaTeX preamble content using the header-includes variable.
+# If you're supplying multiple args, start a new line and indent like so.
+header-includes:
+  \usepackage{parskip}
+  \usepackage{amsmath}
+  \usepackage{mathptmx}
+  \newcommand{\E}{\mathbb{E}}
+  \newcommand{\Var}{\mathrm{Var}}
+  \newcommand{\Cov}{\mathrm{Cov}}
+  \newcommand{\Cor}{\mathrm{Cor}}
+---
+
+This document contains helpful \LaTeX\ settings for doing simple homework assignments. It is written with an R Markdown source file (`.Rmd`) and compiled to PDF.
+
+Here is a quick overview of its features.
+
+- All `.Rmd` documents begin with a header that is written with YAML. It is like a \LaTeX\ preamble, if you're familiar with that idea. This block defines global document parameters like the title, author, and (in our case) global \LaTeX\ options.
+- This header has commented code in it (beginning with `#`) to explain some common, useful options.
+
+This particular document includes \LaTeX-specific stuff, so let's talk about that in particular.
+
+- The `parskip` package sets the paragraph style to be non-intended with blank lines between each paragraph. 
+- The `amsmath` package contains common math tools, including the `{align}` environment for nice multi-line equations. (Better than `{eqnarray}`!)
+- You can define your own macros in \LaTeX, just like you can write your own functions in other programming languages. I've written some that make it easier to write easier probability theory notation. 
+- I have included the `mathptmx` package to demonstrate other the fonts available to \LaTeX.
+
+Here is a demonstration of the custom macros for expectations, variance, and covariance. 
+
+- Expectations: $\E[X]$
+- Conditional expectation: $\E[Y \mid X]$ (use `\mid` for the vertical pipe)
+- Variance and covariance: $\Var(X)$, $\Cov(X, Y)$, $\Cor(X, Y)$
+
+Use the `{align}` environment to align multi-line equations along the `=` symbol (or any arbitrary symbol). Alignment is controlled by the `&` token in the source code.
+\begin{align}
+  y &= 3 \\
+  y &\neq 4
+\end{align}
+
+An equation for a sample mean, to demonstrate how to achieve other common math notation:
+\begin{align*}
+  \bar{x} &= 
+    \frac{1}{n} \sum\limits_{i = 1}^{n} x_{i}
+\end{align*}
+Note that this equation is not numbered. You can suppress equation numbering using `{align*}` with an asterisk.
+
+
