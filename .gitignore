@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+homework-template.tex
+code/*/*_cache
+code/*/*_files
+assignments
+exams
+reading
+roster
