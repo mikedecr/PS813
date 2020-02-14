@@ -1,0 +1,212 @@
+---
+title: "Solutions/Debrief: Data Exercise 1"
+author:  Michael G. DeCrescenzo
+date: | 
+  `r format(Sys.time(), '%B %d, %Y')` 
+output: pdf_document
+geometry: margin = 1.15in
+fontsize: 12pt
+indent: false
+header-includes: 
+  \usepackage{libertine}
+  \usepackage{libertinust1math}
+  \usepackage[varqu, scaled = 0.95]{zi4}
+---
+
+```{r, echo = FALSE, include = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = FALSE, 
+  message = FALSE, warning = FALSE,
+  cache = TRUE,
+  fig.align = "center"
+)
+```
+
+This document describes what we were looking for with Data Exercise 1.
+
+The code that I distributed contained _everything_ you needed to run in R. Your job was essentially to interpret what you were seeing with your particular draw of data. 
+
+```{r packages, cache = FALSE}
+library("tidyverse")
+library("broom")
+```
+
+Your data would have looked something like this:
+
+```{r}
+# Downloads program to make data
+source("https://raw.githubusercontent.com/mikedecr/PS813/master/code/programs/create-exercise-1.R")
+
+# save seed number
+my_seed <- 01110011
+
+# Simulate data with unique seed
+d <- create_data_exercise_1(my_seed)
+```
+
+```{r, echo = FALSE, include = TRUE}
+d %>%
+  as_tibble() %>%
+  print(n = 5)
+```
+
+The exact values of `Leg_Act` will differ for each person, since each individual simulated a different set of data from the following model...
+\begin{align}
+  \mathtt{Leg\_Act}_{i} &= \alpha + \beta\left(\mathtt{terms}_i\right) + \epsilon_{i}
+\end{align}
+with the true values $\alpha = 10$ and $\beta = 0$. The only reason why anybody sees different data is because the values of $\epsilon_{i}$ differ from person to person.
+
+```{r}
+library("tidyverse") # data manipulation and plotting
+library("broom")     # model output
+```
+
+You were asked to plot the data. Some students took my code and added a fitted line to the data. If you did this, it's important to note that that only appropriate line (given the rest of the assignment) is a _straight line_ from a linear model.^[
+  If you added a loess line (the default option with `geom_smooth()`), that would be irrelevant to the rest of the assignment! Loess lines (or any kind of non- or semi-parametric fit line) can be valuable for learning about potential nonlinear relationships, but these smoothers can be tweaked in several complex ways to give different summaries of the data. Best to use them with caution. 
+]
+ Here is code to show the line you would have wanted to draw:
+
+```{r make-plot, include = TRUE, echo = TRUE, fig.width = 4, fig.height = 3, out.width = "80%"}
+ggplot(d) +                      
+  aes(x = terms, y = Leg_Act) +  
+  geom_point() +                 
+  geom_smooth(method = "lm")     
+```
+
+```{r}
+cor(d$Leg_Act, d$terms)
+
+reg <- lm(Leg_Act ~ terms, data = d)
+
+# view plain coefficients
+reg
+
+# or a vector of coefficients
+coef(reg)
+
+# I'm going to save these because I want to use them later
+intercept <- coef(reg)["(Intercept)"] %>%
+  print()
+
+slope <- coef(reg)["terms"] %>%
+  print()
+```
+
+You were asked to (1) estimate the regression line, (2) report the coefficients to appropriate units of precision, and (3) interpret the parameters. 
+
+In my case, my intercept estimate ($\hat{\alpha}$, note the _hat_) was about $`r round(intercept, digits = 1)`$, and my slope estimate ($\hat{\beta}$) was about $`r round(slope, digits = 2)`$. This means that this model estimates that for a one-unit increase in `terms`, the scale value of `Leg_Act` is predicted (predicted, meaning, $\hat{y}$) to increase by $`r round(slope, digits = 2)`$ units. The intercept tells us that the model predicts a `Leg_Act` value of $`r round(intercept, digits = 1)`$ for a legislator with a `terms` value of $0$. In this case, we don't expect any legislators to serve $0$ terms, so the intercept is a parameter that merely helps us fit the appropriate line.
+
+
+```{r}
+# saving the t- and p-values
+terms_t <- tidy(reg) %>%
+  filter(term == "terms") %>%
+  pull(statistic) %>%
+  print()
+
+terms_p <- tidy(reg) %>%
+  filter(term == "terms") %>%
+  pull(p.value) %>%
+  print()
+
+residual_dfs <- glance(reg) %>%
+  pull(df.residual) %>%
+  print()
+```
+
+You were also asked to test the null hypothesis that $\beta = 0$. This information is available to you in the results of `broom::tidy()`, which is a table of your estimated model parameters. The important information for hypothesis testing is in the `statistic` column (which contains $t$-statistics for an OLS model) and the `p.value` column.
+
+```{r, include = TRUE, echo = TRUE}
+# broom::tidy() shows a coefficient-level summary of the model
+tidy(reg)
+```
+
+In my case, the estimated $t$-statistic for the `terms` variable was $`r round(terms_t, 2)`$, which (with $`r residual_dfs`$ degrees of freedom)^[
+  $`r nrow(d)`$ original observations, minus $`r nrow(tidy(reg))`$ estimated model parameters.
+]
+has a p-value of $`r round(terms_p, 2)`$. I cannot reject a null hypothesis that $\beta = 0$, since my $p$-value is larger than the values we typically look at for conventional significance levels ($0.05$, $0.01$, etc.).
+
+We were paying special attention to the way you interpreted your $p$-value and described your hypothesis test. The two-tailed $p$-value is the probability of finding a coefficient _farther from zero_ than your estimated coefficient by chance, _under the assumption that the null hypothesis is true_. Here are several things that the $p$-value _**IS NOT**_:
+
+- The probability that the true slope is zero
+- The probability of no effect
+- One minus the probability of a true effect
+- One minus the probability that the true slope is greater than zero
+
+Do not say these! The $p$-value _does not_ say anything about the probability of what the effect _is_ (such as, "I am 95% confident that the true effect is positive"). Nor does it say anything about the probability of what the effect _is not_ (such as, "95% confident that the true effect is not zero"). In fact, it is probably best to avoid the language of "confidence" altogether, since confidence implies beliefs about parameters, and we aren't learning Bayesian statistics. Instead, the $p$-value is a statement about a hypothetical: _if the null hypothesis were true, what is the probability that I find a more extreme estimate by chance?_
+
+Similarly, we were paying attention to your language about your hypothesis test. If your $p$-value does not imply a significant coefficient, that does not mean that the null hypothesis is true. Conversely, if you detected a significant coefficient, that does not mean that the null hypothesis is incorrect. You either _reject_ or _fail to reject_ a null hypothesis. The underlying truth of the null hypothesis is not affected by your conclusion! This is because your conclusion is sensitive to your significance threshold---you could change your threshold and thus change your conclusion. Hypothesis tests are _decisions_ that you make about about inferred values of the unknown parameter. These decisions could be randomly incorrect, due to the nature of random error in your model.
+
+One technical R note: if you used the `t.test()` function to perform your hypothesis test, this was incorrect. See the footnote.^[
+  If you did something like `t.test(d$terms)`, then what you have asked R to do is test the null hypothesis that the mean of `terms` is equal to zero. You would have rejected the null hypothesis, but it would not have mattered, because you asked R a question that did not make sense for the assignment. Always be questioning what an R function does by examining its help file: `help(function_name)` or `?function_name`.
+]
+
+
+
+
+
+
+
+```{r}
+# broom::augment() returns yhat (.fitted), residuals (.resid), and more.
+# Also contains the raw X and Y data
+predictions <- augment(reg)
+
+predictions
+
+
+
+
+
+# plot residuals (y) against terms (x)
+ggplot(predictions) +
+  aes(x = terms, y = .resid) +
+  geom_point()
+
+
+
+
+
+
+# correlation of observed and predicted Y values, and squared correlation
+correlation <- cor(predictions$Leg_Act, predictions$.fitted)
+
+correlation
+correlation^2
+
+# view model R^2 (and other measures of model fit) with broom::glance()
+glance(reg)
+
+# R results sometimes print with truncated precision. 
+# grab the result directly to see more
+glance(reg)$r.squared
+
+# this $ syntax works here too,  
+# because glance(reg) produces a data frame w/ variables, 
+# just like d is a data frame w/ variables
+
+
+
+
+
+
+# ---- General R setup advice -----------------------
+
+# Use PROJECTS with R
+
+# 1. Create a PS-813 folder on your computer. 
+#    Inside that folder, create subfolders for `data` and `code`. 
+#    These will come in handy later
+# 2. If you're using Rstudio, begin a "Project" for PS-813. 
+#    Go to File > New Project, and then open a project in an existing 
+#    directory (choose your PS-813 folder).
+#    This will create a PS-813 project. A button in the top right shows 
+#    which project you are working within.
+#    Projects are primarily helpful for managing your directories. You can 
+#    see this by running `getwd()` and noting that the current directory is
+#    already set to be your PS-813 folder. 
+# 3. There should now be a `.Rproj` file inside of your PS-813 folder. 
+#    In the future, when you want to work on R for this course, you can
+#    open this project file, and it will begin an R session with the 
+#    directory already set to the appropriate location
+```
