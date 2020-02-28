@@ -67,6 +67,7 @@ ggplot(d) +
 #   and plot them ourselves.
 
 
+
 # ---- estimating a model -----------------------
 
 # the lm() function estimates a linear model.
@@ -137,6 +138,8 @@ prediction_data
 # Generate predicted values for new observations
 #   with the `newdata = ...` argument in augment()
 augment(ols_model, newdata = prediction_data)
+
+
 
 
 # ---- confidence intervals for predicted values -----------------------

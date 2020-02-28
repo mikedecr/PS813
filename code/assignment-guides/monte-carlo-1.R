@@ -121,7 +121,7 @@ bind_rows(
 true_alpha <- c(0, 1, 5, 10)
 true_sigma <- c(1, 2, 5, 10)
 
-# make a dataset where every row is a combination of alpha and beta
+# make a dataset where every row is a combination of alpha and sigma
 cross_data <- 
   crossing(true_alpha, true_sigma) %>%
   print()
@@ -174,6 +174,9 @@ ggplot(monte_carlo_full) +
   aes(x = slope) +
   geom_histogram(bins = 100) +
   facet_grid(true_alpha ~ true_sigma)
+
+
+
 
 # or I could summarize each monte carlo
 #   by grouping the data and then calculating summary stats
