@@ -1,0 +1,11 @@
+To do:
+
+- GRADE: 
+    - publish midterm grades
+    - problem set 5
+    - data ex 2
+- GUIDES:
+    - upload PS 6 to Canvas
+- SOLUTIONS: 
+    - monte carlo 1
+    - 813 data exercise 2
