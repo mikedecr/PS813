@@ -1,5 +1,9 @@
 To do:
 
+- CLASS ANNOUNCEMENTS
+    - Monte Carlo 2 solutions
+    - Data exercise 2 code
+    - PS 6 code
 - GRADE: 
     - publish midterm grades
     - problem set 5
