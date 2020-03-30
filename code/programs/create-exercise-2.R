@@ -1,3 +1,8 @@
+# ----------------------------------------------------
+#   Create PS 813 (Weimer) Data Exercise 2 in R
+#   by Michael DeCrescenzo (mgdecrescenzo@gmail.com)
+#   Modeled after <https://faculty.polisci.wisc.edu/weimer/PS813_EX2.ado>
+# ----------------------------------------------------
 
 create_exercise_2 <- function(seed = NA) {
 
