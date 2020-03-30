@@ -162,7 +162,7 @@ ols_dfs
 
 # what is the t value (quantile) that leaves 2.5% prob in the upper tail?
 # (again, saving it)
-critical_t <- qt(p = 0.025, df = glance(ols_model)$df.residual)
+critical_t <- qt(p = 0.975, df = glance(ols_model)$df.residual)
 critical_t
 
 
