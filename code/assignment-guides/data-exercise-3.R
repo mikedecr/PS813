@@ -13,7 +13,7 @@ source("https://raw.githubusercontent.com/mikedecr/PS813/master/code/programs/cr
 # run program to create data
 # replace NA with your seed number
 d3 <- 
-  create_exercise_3(seed = 9867) %>%
+  create_exercise_3(seed = NA) %>%
   as_tibble() %>%
   print()
 
