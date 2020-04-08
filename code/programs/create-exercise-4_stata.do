@@ -9,4 +9,5 @@
 
 net install PS813_EX4, from(https://faculty.polisci.wisc.edu/weimer)
 PS813_EX4 9870
+drop Probat
 save data/probat.dta, replace
