@@ -27,6 +27,8 @@ errvar <- function(
     str_glue("Estimating coefficients for {n_simulations} simulated datasets of sample size {sample_size}")
   )
 
+  set.seed(seed)
+
   d <- 
     tibble(x = runif(n = sample_size)) %>%
     crossing(iteration = 1:n_simulations) %>%
