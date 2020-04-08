@@ -24,7 +24,7 @@ set.seed(2002181901)
 # Run the following command.
 # This downloads the `corerr()` function into your R session, 
 #   which you can use to make monte carlo datasets.
-source("https://raw.githubusercontent.com/mikedecr/PS813/master/code/programs/cor-err.R")
+source("https://raw.githubusercontent.com/mikedecr/PS813/master/code/programs/monte-carlo_1_corerr.R")
 
 # this command shows available R objects. 
 # You will see "corerr" if you ran the above.
