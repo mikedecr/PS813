@@ -4,7 +4,6 @@
 #   <https://faculty.polisci.wisc.edu/weimer/PS813_EX3.ado>
 # ----------------------------------------------------
 
-# requires tidyverse
 
 create_exercise_3 <- function(seed = NA) {
 

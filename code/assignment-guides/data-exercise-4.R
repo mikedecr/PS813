@@ -7,9 +7,14 @@
 library("tidyverse")
 library("broom")
 
+# install simulation program
 source("https://raw.githubusercontent.com/mikedecr/PS813/master/code/programs/create-exercise-4.R")
 
+# execute simulation
 d4 <- create_exercise_4(456) %>% print()
+
+
+# ---- logistic regression ("logit") -----------------------
 
 # estimating a logit with glm()
 # ("generalized linear model")
