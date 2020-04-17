@@ -1,0 +1,308 @@
+---
+title: |
+  | "Clarify-Style" Confidence Intervals
+  | Using Monte Carlo Sampling
+author: Michael DeCrescenzo
+# using these vertical pipes lets you do more flexible things like use LaTeX
+date: |
+  | \today
+
+output: 
+  pdf_document:
+    keep_tex: true # sub-options require indentation like this
+
+# here are some options that overrule global LaTeX things:
+geometry: margin = 1.15in # can also set top =, left =, ... separately
+                          # My secret advice is to use margins >= 1.15in 
+                          # until you get caught (they look better)
+fontsize: 12pt
+compact-title: true # for some reason the default PDF title style is horrible.
+                    # this fixes that.
+                    # OR update knitr/rmarkdown to the most recent version
+                    # which I think fixes the ugly title style
+indent: false # for some reason the default paragraph style is also horrible. 
+             # this fixes that.
+
+# You can supply LaTeX preamble content using the header-includes variable.
+# If you're supplying multiple args, start a new line and indent like so.
+header-includes:
+  \usepackage{mathptmx}
+---
+
+
+This document describes an approach to generating confidence intervals without fussing with too much math. In many situations, confidence intervals can be calculated _analytically_ (meaning, with a mathematical formula). For more complicated models or more complicated predictions, we can approximate confidence bounds without having to do a lot of math ourselves. We can do this using _numerical_ (simulation-based) methods instead of analytical methods.
+
+# Intuition
+
+We will show how to approximate confidence bounds by simulating draws from the _normal distribution_.
+
+```{r packages, warning = FALSE, message = FALSE, include = FALSE}
+# load packages
+library("tidyverse")
+library("broom")
+library("mvtnorm")
+```
+
+```{r, include = FALSE}
+theme_set(theme_minimal())
+```
+
+```{r chunkos, include = FALSE}
+knitr::opts_chunk$set(
+  fig.width = 5, fig.height = 3, out.width = "80%",
+  fig.align = "center",
+  include = FALSE, echo = FALSE, warning = FALSE, message = FALSE,
+  collapse = TRUE,
+  cache = TRUE
+)
+```
+
+```{r one-d}
+coef_value <- 1.4
+se_value <- 0.9
+```
+
+Imagine that we estimate a linear model with a large number of observations (so our T distribution looks like a Normal distribution) and get a coefficient of `r coef_value` with standard error `r se_value`. We can build a confidence interval using this information like so:
+\begin{align}
+  \text{Confidence interval} &= 
+    \hat{\beta} \pm z\left(1 - \alpha / 2\right) \times \mathrm{se}\left(\hat{\beta}\right) \\[6pt]
+    &= `r coef_value` \pm `r round(qnorm(1 - .05 / 2), 2)` \times `r se_value` \\[6pt]
+    &= \left(`r c(round(coef_value - (qnorm(1 - .05 / 2) * se_value), 2), round(coef_value + (qnorm(1 - .05 / 2) * se_value), 2))` \right)
+\end{align}
+where $z(1 - \alpha / 2)$ is the critical $z-value$ for our given confidence level $\alpha$. In this is example, if we set $\alpha$ to be $.05$ then the $z$-value is $`r round(qnorm(1 - .05 / 2), 2)`$. 
+
+What's crucial to see is that these are the same bounds as we would get if we (a) specify a normal distribution with mean `r coef_value` and standard deviation of `r se_value`, grabbing the quantile values at $.025$ and $.975$. 
+
+```{r simple-norm, include = TRUE}
+norm_data <- tibble(
+  x = seq(-2, 5, .01),
+  density = dnorm(x = x, mean = coef_value, sd = se_value)
+) 
+
+normal_plot <- 
+  ggplot(norm_data) +
+  aes(x = x, y = density) +
+  geom_ribbon(
+    data = filter(
+      norm_data, 
+      x > qnorm(p = .025, mean = coef_value, sd = se_value),
+      x < qnorm(p = .975, mean = coef_value, sd = se_value),
+    ),
+    aes(ymin = 0, ymax = density),
+    color = NA, 
+    fill = "dodgerblue",
+    alpha = 0.45
+  ) +
+  geom_line() +
+  geom_vline(xintercept = coef_value, linetype = "dashed") +
+  labs(
+    title = "Confidence Bounds from the Normal Distribution",
+    subtitle = "Interval bounds from quantile function (qnorm())",
+    x = "Coefficient",
+    y = "Normal Density"
+  )
+
+normal_plot
+```
+
+We can approximate the same bounds by _simulating a large number of Normal draws_, and grabbing the "empirical quantiles" from those simulations. Here is a simple demo of how we could do that in R.  
+
+```{r one-d, echo = TRUE, include = TRUE}
+```
+
+```{r, include = TRUE, echo = TRUE}
+# simulate normal draws
+sim_values <- rnorm(n = 1000, mean = coef_value, sd = se_value)
+
+# extract bounds of the "inner 95%"
+empirical_int <- 
+  quantile(sim_values, probs = c(0.025, 0.975)) %>%
+  print()
+```
+
+If I plot the two intervals side by side, you can see that they are very similar (but not guaranteed to be exact).
+
+```{r, include = TRUE, fig.height = 1.5}
+tribble(
+  ~ method, ~ conf.low, ~ conf.high,
+  "Analytical", 
+    qnorm(p = .025, mean = coef_value, sd = se_value),
+    qnorm(p = .975, mean = coef_value, sd = se_value),
+  "Simulated", empirical_int[1], empirical_int[2]
+) %>%
+  mutate(
+    coef = coef_value
+  ) %>%
+  ggplot(aes(x = fct_rev(method), y = coef)) +
+  geom_pointrange(aes(ymin = conf.low, ymax = conf.high)) +
+  coord_flip() +
+  labs(
+    title = "Comparison of Interval Methods",
+    x = NULL, y = "Coefficient"
+  )
+```
+
+# Multivariate Example
+
+Generating a confidence interval from a single parameter is simple even without simulating. The simulation method comes in handy when we have to demonstrate uncertainty in more complicated quantities, such as model predictions (which are functions of multiple model parameters), differences in predictions, and other transformations of model predictions. I will demonstrate with the Data Exercise 3 data (salaries of men and women).
+
+
+```{r program}
+# run this code to install program
+source("https://raw.githubusercontent.com/mikedecr/PS813/master/code/programs/create-exercise-3.R")
+```
+
+```{r create-data, include = TRUE, echo = TRUE}
+# program needs to be source()d first
+d3 <- 
+  create_exercise_3(seed = 813) %>%
+  as_tibble() %>%
+  print()
+```
+
+I estimate the model that you should have done for the exercise. 
+
+```{r estimate-model, include = TRUE, echo = TRUE}
+mod <- lm(
+  Salary ~ Sex + Rating + Sex*Rating + Credits, 
+  data = d3
+)
+```
+
+## The Multivariate Normal Distribution
+
+In order to simulate draws of multiple model parameters at the same time, you use the _multivariate normal distribution_, which is a higher dimensional normal distribution. The mean of a multivariate normal isn't just one value; it is a vector of values. Similarly, the variance isn't one value either; it is a matrix of variances and covariances defined for every dimension of the distribution. To simulate coefficient draws from a model, we simulate from a multivariate normal distribution using our _coefficient estimates_ as the mean vector...
+```{r multinorm-values, echo = TRUE, include = TRUE}
+# rounding for the sake of prettier output.
+
+# the means
+coef(mod) %>% round(2)
+```
+...and the _variance-covariance matrix_ of the coefficients. The elements that appear as $0$ aren't actually $0$; they're only _rounding down_ to $0$.
+
+```{r vcov, include = TRUE, echo = TRUE}
+# variance-covariance matrix
+vcov(mod) %>% round(2)
+```
+
+There are a few packages with functions to simulate multivariate Normal draws. I use `{mvtnorm}`. The function is `rmvnorm()`, `r` for "random" draws, `mvnorm` for "multivariate Normal." Here is an example using only a small number of draws.
+
+```{r, echo = TRUE, include = TRUE}
+mvtnorm::rmvnorm(
+  n = 10,
+  mean = coef(mod),
+  sigma = vcov(mod)
+)
+```
+
+## Predictions from simulated draws
+
+Remember the matrix-form equation for the regression and model predictions,
+\begin{align}
+  Y &= X\beta + \varepsilon, \\
+  \hat{Y} &= X\hat{\beta},
+\end{align}
+where $Y$, $\hat{Y}$, and $\varepsilon$ are $n \times 1$, $X$ is $n \times p$ including a column of 1s, and $\beta$ is $p \times 1$ including the intercept.
+
+To describe predictions from $M$ simulated coefficient draws, let's introduce notation for $\tilde{Y}$, an $n \times M$ matrix of predictions, and $\tilde{\beta}$, a $p \times M$ matrix of simulated coefficients, each with _one column for each simulated draw_.
+\begin{align}
+  \tilde{Y} &= X\tilde{B}
+\end{align}
+To make $\tilde{Y}$, we need to build $X$, simulate $\tilde{\beta}$, and then multiply.
+
+```{r predictions, include = TRUE, echo = TRUE}
+# X must same variables in the same order as coefs
+# transmute() is a combo of mutate() and select().
+# I fit Credits at the mean for this set of predictions.
+X <- d3 %>%
+  transmute(
+    const = 1,
+    Sex,
+    Rating,
+    Credits = mean(Credits),
+    Sex_Rating = Sex * Rating
+  ) %>%
+  print()
+
+# we transpose (t()) this result
+#   from M x p to p x M
+sim_beta <- 
+  mvtnorm::rmvnorm(
+    n = 1000,
+    mean = coef(mod),
+    sigma = vcov(mod)
+  ) %>%
+  t()
+
+# check dimensions
+dim(sim_beta)
+
+# calculate Yhat.
+# convert X to matrix so that it works with %*%,
+#   which is matrix multiplication
+Ys <- as.matrix(X) %*% sim_beta
+
+# check dimensions
+dim(Ys)
+```
+
+Now that we have $M$ simulated predictions, grab the bounds at the quantiles for whichever $\alpha$ level you desire.
+
+```{r apply, include = TRUE, echo = TRUE}
+# apply() gives 2 x N array.
+# I take the additional steps to 
+#   transpose, convert to data frame, 
+#   and rename columns
+bounds <- 
+  apply(X = Ys, MARGIN = 1, FUN = quantile, c(.025, .975)) %>%
+  t() %>%
+  as_tibble() %>%
+  set_names(c("sim.conf.low", "sim.conf.high")) %>%
+  print()
+``` 
+
+I could add the right-hand data as well as the point estimate from this design matrix ($X$) by using the point estimates of the coefficients instead of the simulations.
+
+```{r pt, include = TRUE, echo = TRUE}
+sim_predictions <- bounds %>%
+  mutate(
+    yhat = as.vector(as.matrix(X) %*% coef(mod))
+  ) %>%
+  bind_cols(X) %>%
+  select(-const) %>%
+  print()
+```
+
+How do these predictions compare to the predictions you would get from `augment()` or some other method?
+
+```{r, include = TRUE, out.width = "100%", fig.width = 6, fig.height = 4}
+sim_predictions %>%
+  prediction::prediction(model = mod, data = ., interval = "confidence") %>%
+  as_tibble() %>%
+  ggplot() + 
+  aes(x = Rating, y = yhat, color = as.factor(Sex), fill = as.factor(Sex)) +
+  geom_ribbon(
+    aes(ymin = fitted.lwr, ymax = fitted.upr),
+    color = NA,
+    alpha = 0.3
+  ) +
+  geom_linerange(
+    aes(ymin = sim.conf.low, ymax = sim.conf.high)
+  ) +
+  geom_line() +
+  scale_color_viridis_d(end = 0.7, begin = 0.3) +
+  scale_fill_viridis_d(end = 0.7, begin = 0.3) +
+  labs(
+    title = "Comparison of Model Predictions",
+    subtitle = "Lines and Bands from Analytical Method.\nError Bars from Simulation.",
+    color = "Sex", fill = "Sex",
+    y = "Predicted Salary"
+  ) +
+  scale_y_continuous(labels = scales::dollar)
+```
+
+# Closing Notes
+
+To see why this could be useful, imagine that instead of plotting separate trends for men and women, you wanted to plot the _difference in the predictions_ for men and women. How would you calculate the confidence interval for the _difference_ in these predictions? With a simulation-based method, you wouldn't have to. You could simply simulate predictions for men and women, calculate the difference in each iteration, and then summarize the distribution of differences by calculating the quantiles as we did above. 
+
+It's worth reiterating that this is an approximation to the proper confidence intervals. The approximation error comes from two sources: using the _Normal_ distribution instead of the appropriate T distribution, and the imprecision of calculating CI bounds using a finite number of simulations. Using a large number of simulations should minimize the numerical error, but the distributional error will always be there. For this reason, you may want to avoid this method for smaller samples. 
