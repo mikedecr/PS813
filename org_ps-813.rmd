@@ -1,15 +1,27 @@
 To do:
 
+- Dave:
+    - do I have the variances of the Normals right in Stata?
 - CLASS ANNOUNCEMENTS
-    - Monte Carlo 2 solutions
-    - Data exercise 2 code
-    - PS 6 code
+    - Rsq as an indicator of model fit really depends on the dataset. For some cases, you're lucky to explain 10% of variation. For experiments, where you're confident that you're model is identifying a causal effect, you should expect a small Rsq because the purpose of the model isn't to "fully explain" the variation in the DV. Thinking about our conversations in 811, whether to include a variable in an analysis sometimes depends on whether you're trying to estimate a causal effect and if the potential control is post-treatment.
+    - Some people aren't really using Rmd effectively. Copying text from assignments into Rmd will turn them into weird ordered lists that look ugly. Why are you turning in ugly stuff? Stop that.
 - GRADE: 
-    - publish midterm grades
-    - problem set 5
-    - data ex 2
+    - problem set 5, 7
+    - data ex 2, 3, 4
+    - MC 2
 - GUIDES:
+    - [x] PS 7
+    - [x] MC 2
+    - [ ] data exercise 4
+    - variance of regression predictions (notes 2.3, eq. 64-67)
     - upload PS 6 to Canvas
 - SOLUTIONS: 
-    - monte carlo 1
-    - 813 data exercise 2
+    - data exercise 3
+- Github logistics
+    - take credit for everything
+    - Make a central Rmd describing the process
+    - no dependencies if we can?
+
+
+
+
